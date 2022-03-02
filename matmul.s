@@ -26,14 +26,15 @@ matmul:
    iloopstart:
       cmp   x9, x3 
       b.eq  end
+      mov   x10, #0 // j = 0
       jloopstart:
          cmp   x10, x5 // checking if j < wB
          b.eq  jloopend 
          mov    x11, #0 // k = 0
          mov    x12, #0 // sum = 0            
-         stp   x0, x1 [x29, 16] // save parameter regesters to stack
-         stp   x2, x3 [x29, 32]
-         stp   x4, x5 [x29, 48]
+         stp   x0, x1, [x29, 16] // save parameter regesters to stack
+         stp   x2, x3, [x29, 32]
+         stp   x4, x5, [x29, 48]
          kloopstart:
             cmp   x11, x4 // checking if k < wA
             b.eq  kloopend
@@ -54,8 +55,8 @@ matmul:
             bl    intadd
             mov   x14, x0 /* set b offset */
             /* now add to sum */
-            ldr   x0, [x1, x13]
-            ldr   x2, [x2, x14]
+            ldrb  x0, [x1, x13]
+            ldrb  x2, [x2, x14]
             bl    intmul  /* do the matrix mult */
             mov   x2, x12 
             bl    intadd  /* add to the running total */
@@ -72,15 +73,37 @@ matmul:
             bl    intmul  /* i * wB */
             mov   x2, x10 
             bl    intadd  /* + j */
-            mov   
-
+            mov   x15, x0 /* copy c offset to x15 */
             ldp   x0, x1, [x29, 16]
             ldp   x2, x3, [x29, 32]
             ldp   x4, x5, [x29, 48] /* restore parameter registers */
+            strb   x12, [x0, x15] /* push sum to c ptr at offset */
+            stp   x0, x1, [x29, 16] // save parameter regesters to stack
+            stp   x2, x3, [x29, 32]
+            stp   x4, x5, [x29, 48]
+            mov   x0, x10
+            mov   x2, #1
+            bl    intadd /* increment i by one */
+            mov   x10, x0  /* set i to new value */
+            ldp   x0, x1, [x29, 16]
+            ldp   x2, x3, [x29, 32]
+            ldp   x4, x5, [x29, 48] /* restore parameter registers */
+            bl    jloopstart  
       jloopend:
-   
+         stp   x0, x1, [x29, 16] // save parameter regesters to stack
+         stp   x2, x3, [x29, 32]
+         stp   x4, x5, [x29, 48]
+         mov   x0, x9
+         mov   x2, #1
+         bl    intadd /* increment i by one */
+         mov   x9, x0  /* set i to new value */
+         ldp   x0, x1, [x29, 16]
+         ldp   x2, x3, [x29, 32]
+         ldp   x4, x5, [x29, 48] /* restore parameter registers */
+         bl    iloopstart
    end:
-
+      ldp  x29, x30, [sp], 64
+      ret
 ////////////////////////////////////////////////////////////////////////////////
 // You're implementing the following function in ARM Assembly
 //! C = A * B
