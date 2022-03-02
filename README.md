@@ -1,5 +1,5 @@
 # cpe315-matmul
-## Your name(s) here
+## Emelia Ortiz, Taylor BEdrosian, Shivam
 
 ### To build:
 ```shell
